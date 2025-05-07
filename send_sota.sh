@@ -1,6 +1,14 @@
 
 # Sotaにsrc以下のファイルを送り込む
-sota_ip="192.168.0.1"
+
+# SotaのIPアドレスをsota_ipファイルから読みだしてsota_ipに格納
+# もしsota_ipファイルが存在しない場合は、コンソールからIPアドレスを入力してsota_ipに格納
+if [ -f "sota_ip" ]; then
+    sota_ip=$(cat sota_ip)
+else
+    read -p "Enter Sota's IP address: " sota_ip
+    echo $sota_ip > sota_ip
+fi
 
 # SotaのIPアドレスをコンソールで入力してsota_ipに格納
 read -p "Enter Sota's IP address: " sota_ip
@@ -22,7 +30,6 @@ echo "Files have been sent to SotaDeploy directory."
 
 # 送信した先で、*.shファイルのパーミッションに実行権限を付与
 sshpass -p edison00 ssh root@$sota_ip "chmod +x /home/root/SotaDeploy/deploy/*.sh"
-
 
 
 
