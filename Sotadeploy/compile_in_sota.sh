@@ -6,8 +6,6 @@ classpath=".\
 "
 
 cd ./src
-
-javac -encoding utf-8 -classpath  "$classpath" -d ../bin $1
-
+javac -encoding utf-8 -classpath "$classpath" -d ../bin $1.java
 cd ../bin
 
