@@ -3,7 +3,7 @@
 
 # SotaのIPアドレスをsota_ipファイルから読みだしてsota_ipに格納
 # もしsota_ipファイルが存在しない場合は、コンソールからIPアドレスを入力してsota_ipに格納
-if [ -f "sota_ip" ]; then
+if [ -f "sota_ip.conf" ]; then
     sota_ip=$(cat sota_ip.conf)
 else
     read -p "Enter Sota's IP address: " sota_ip
