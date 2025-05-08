@@ -48,18 +48,21 @@ public class CameraStreamer {
 			return;
 		}
 
+		boolean isRunning = true;
+
+		// 見回しフラグ
+		boolean isLookAround = true;
+
 
 		//VSMDと通信ソケット・メモリアクセス用クラス
 		CRobotMem mem = new CRobotMem();
 		//Sota用モーション制御クラス
 		CSotaMotion motion = new CSotaMotion(mem);
 
-
+		// Sota仕様にVSMDを初期化
 		motion.InitRobot_Sota();
 
-		CRoboCamera cam = new CRoboCamera("/dev/video0", motion);
 		CRobotPose pose = new CRobotPose();
-
 
 		
 		//サーボモータを現在位置でトルクOnにする
@@ -72,13 +75,11 @@ public class CameraStreamer {
 			// カメラで撮影
 			CRobotUtil.Log(TAG, "Camera Start");
 			//撮影用に初期化
-			cam.initStill(new CameraCapture(CameraCapture.CAP_IMAGE_SIZE_VGA, CameraCapture.CAP_FORMAT_3BYTE_BGR));
-			CRobotUtil.wait(500);
+			CameraCapture cap = new CameraCapture(CameraCapture.CAP_IMAGE_SIZE_VGA, CameraCapture.CAP_FORMAT_3BYTE_BGR);
+			int hCapDev = cap.openDevice("/dev/video0");
 
 
-			CameraCapture cap = cam.getcap();
-
-			// 画像更新スレッド
+			// 撮影＆画像更新スレッド
 			new Thread(() -> {
 				while (true) {
 					
@@ -97,26 +98,76 @@ public class CameraStreamer {
 					long hogeEnd = System.currentTimeMillis();
 
 					long hogeTime = hogeEnd - hogeStart;
-					CRobotUtil.Log(TAG, "Capture time:" + Long.toString(hogeTime) + " ms");
+					//CRobotUtil.Log(TAG, "Capture time:" + Long.toString(hogeTime) + " ms");
 
-					CRobotUtil.wait(10);
+
+					try{
+						// 10ms待機
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						//isRunning = false;
+						break;
+					}
 				}
 			}).start();
 
 
-		//}catch (InterruptedException e) {
-		//	CRobotUtil.Log(TAG, "Interrupt");
-		}finally{
-
-			CRobotUtil.Log(TAG, "Shutting down ...");
-			
-			pose.setLED_Sota(Color.WHITE, Color.WHITE, 0, Color.GREEN);
-			motion.play(pose,10);			
-			//サーボモータのトルクオフ
-			CRobotUtil.Log(TAG, "Servo Off");
-			motion.ServoOff();
-	
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
+
+
+
+
+
+		// 首振り。メインスレッドでないとサーボモータが動かない
+		motion.play(GetNeutralPose(), 1000);
+		while (isLookAround) {
+					
+			// 左を向く
+			CRobotUtil.Log(TAG, "look left");
+			pose.SetPose(new Byte[] {1, 6},  new Short[]{5, 200});
+			//pose.SetPose(new Byte[] {     1,   2,   3,   4,   5,   6,   7,   8},  
+			//			  new Short[]{     0, 600,   0,   0, 600, 500,   0,   0});
+			motion.play(pose, 3000);
+			motion.waitEndinterpAll();
+
+			CRobotUtil.wait(100);
+
+			// 右を向く
+			CRobotUtil.Log(TAG, "look right");
+			pose.SetPose(new Byte[] {1, 6},  new Short[]{-5, -200});
+			//pose.SetPose(new Byte[] {     1,   2,   3,   4,   5,    6,   7,   8},  
+			//			  new Short[]{     0, 600,   0,   0, 600, -500,   0,   0});
+			motion.play(pose, 3000);
+			motion.waitEndinterpAll();
+
+
+			CRobotUtil.wait(100);
+			try{
+				Thread.sleep(100);
+			}catch(InterruptedException e){
+				//isRunning = false;
+				break;
+			}
+		}
+
+
+
+		while (isRunning) {
+			CRobotUtil.wait(100);
+		}
+		
+		
+		CRobotUtil.Log(TAG, "Shutting down ...");
+			
+		pose.setLED_Sota(Color.WHITE, Color.WHITE, 0, Color.GREEN);
+		motion.play(pose,10);			
+		//サーボモータのトルクオフ
+		CRobotUtil.Log(TAG, "Servo Off");
+		motion.ServoOff();
+		
+		
 	}
 
 
