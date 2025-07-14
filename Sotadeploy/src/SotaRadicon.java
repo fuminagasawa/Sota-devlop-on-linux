@@ -8,7 +8,7 @@ import jp.vstone.sotatalk.MotionAsSotaWish;
 
 import java.awt.Color;
 import jp.vstone.RobotLib.*;
-
+import java.util.ArrayDeque;
 
 
 import com.sun.net.httpserver.HttpServer;
@@ -33,6 +33,8 @@ public class SotaRadicon {
 	private static CSotaMotion motion;
 
 
+	private static ArrayDeque<sayEntry> sayQueue = new ArrayDeque<>();
+
 
 	public static CRobotPose GetNeutralPose(){
 
@@ -46,23 +48,33 @@ public class SotaRadicon {
 	}
 
 
-	public static void TalkWithSimpleMotion(String message, CRobotPose pose, int playtime){
+	public static void TalkWithSimpleMotion(String message, CRobotPose pose, int playtime, boolean back_neutral){
 
 		motion.play(pose, playtime);
 		Talk( message, true);
 		motion.waitEndinterpAll();
 
-		//if(back_neutral){
+		if(back_neutral){
 			motion.play(GetNeutralPose(),1000);
 			motion.waitEndinterpAll();
-		//}
+		}
 
 	}
+	public static void TalkWithSimpleMotion(String message, CRobotPose pose, int playtime){
+		TalkWithSimpleMotion( message, pose, playtime);
+	}
+
 	public static void TalkWithBasicMotion(String message, String scene, int playtime){
 
 		//sotawish.StopIdling();
 		//MotionAsSotaWish(CRobotMotion _motion) 
-		sotawish.SayFile( TextToSpeechSota.getTTSFile(message), scene);
+
+		sayEntry se = new sayEntry();
+		se.message = message;
+		se.scene = scene;
+
+		sayQueue.add(se);
+		//sotawish.SayFile( TextToSpeechSota.getTTSFile(message), scene);
 		//sotawish.play( MotionAsSotaWish.MOTION_TYPE_HELLO, 5000);
 
 		//sotawish.StartIdling();
@@ -150,6 +162,13 @@ public class SotaRadicon {
 		while(true){
 
 			try{
+
+				if(0<sayQueue.size()){
+					sayEntry se = sayQueue.poll();
+					sotawish.Say( se.message, se.scene);
+				} 
+
+
 				CRobotUtil.wait(100);
 				Thread.sleep(100);
 			}catch(InterruptedException e){
@@ -167,6 +186,15 @@ public class SotaRadicon {
 
 	}
 
+
+
+
+	static class sayEntry{
+
+		public String message = "";
+		public String scene   = "";
+
+	}
 
 	static class PostHandler implements HttpHandler {
 
@@ -260,6 +288,22 @@ public class SotaRadicon {
 			System.out.println("         motion_scene:" + motion_scene);
 			TalkWithBasicMotion( message, motion_scene, 1000);
 
+
+
+
+			/*
+			CRobotPose pose = new CRobotPose();
+			// お試しポーズ1
+			Byte[]  axis_ids       = new Byte[] {1   ,2   ,3   ,4   ,5   ,6   ,7   ,8};	//id
+			Short[] axis_values =  new Short[]{-100   , 600,0   ,0,600   ,0   ,0   ,0};	//target pos
+			pose.SetPose( axis_ids, axis_values);
+
+			//LEDを点灯（左目：赤、右目：赤、口：Max、電源ボタン：みどり）
+			pose.setLED_Sota(Color.WHITE, Color.WHITE, 255, Color.GREEN);
+							
+
+			TalkWithSimpleMotion( message, pose, 1000);
+			*/
 		}
 
 
